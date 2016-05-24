@@ -10,17 +10,27 @@
 #import "PriceData.h"
 
 @interface PricesView : UIView
-/**
- *  显示的数据数
- */
-@property (assign, nonatomic) int showCount;
 
 /**
  *  股票日价列表
  */
 @property (strong,nonatomic) PriceData *priceData;
 
-//+ (instancetype)pricesView:(PriceData *)priceData;
-//- (instancetype)initWithPriceData:(PriceData *)priceData;
+/**
+ *  类方法获取实例
+ *
+ *  @param priceData 股票日价列表
+ *
+ *  @return 该类的实例
+ */
++ (instancetype)pricesView:(PriceData *)priceData;
+/**
+ *  用股票日价列表初始化该实例
+ *
+ *  @param priceData 股票日价列表
+ *
+ *  @return 初始化后的实例
+ */
+- (instancetype)initWithPriceData:(PriceData *)priceData;
 
 @end

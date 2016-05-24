@@ -21,8 +21,17 @@
 #import "PriceData.h"
 #import "PricesView.h"
 
+/**
+ *  屏幕的位置大小
+ */
 #define Screen_Frame                    [UIScreen mainScreen].bounds
+/**
+ *  屏幕的宽
+ */
 #define Screen_Width                    Screen_Frame.size.width
+/**
+ *  屏幕的高
+ */
 #define Screen_Height                   Screen_Frame.size.height
 
 @interface ViewController ()
@@ -50,35 +59,33 @@
     
     [self settingUi];
 }
-
-#pragma mark - 触摸点击方法
-- (void)pinchAction:(UIPinchGestureRecognizer *)sender
+- (UIStatusBarStyle)preferredStatusBarStyle
 {
-    if (sender.scale > 1.0 && self.pricesView.showCount != 10) {
-        self.pricesView.showCount = 10;
-    }
-    if (sender.scale < 1.0 && self.pricesView.showCount != 20) {
-        self.pricesView.showCount = 20;
-    }
-    
-    if (sender.state == UIGestureRecognizerStateEnded) {
-        sender.scale = 1.0;
-    }
+    return UIStatusBarStyleLightContent;
 }
 
 #pragma mark - 自定义方法
+/**
+ *  设置UI
+ */
 - (void)settingUi
 {
     self.view.backgroundColor = [UIColor blackColor];
     
-    PricesView *pView = [[PricesView alloc] init];
-    pView.frame = CGRectMake(0, (Screen_Height - Screen_Width)/2, Screen_Width, Screen_Width);
-    pView.backgroundColor = [UIColor whiteColor];
-    pView.priceData = self.priceData;
+    UILabel *label = [[UILabel alloc] init];
+    CGFloat Y = [UIApplication sharedApplication].statusBarFrame.size.height;
+    label.frame = CGRectMake(0, Y, Screen_Width, Screen_Height - Y - Screen_Width);
+    label.backgroundColor = [UIColor clearColor];
+    label.font = [UIFont systemFontOfSize:14];
+    label.numberOfLines = 0;
+    label.textColor = [UIColor whiteColor];
+    label.text = @"说明：\n    1.拖动手势可以查看左右的数据\n    2.捏合手势可以缩放显示内容\n    3.长按手势可以显示与隐藏十字架，并且显示时十字架跟随手势移动";
+    [self.view addSubview:label];
+    
+    PricesView *pView = [PricesView pricesView:self.priceData];
+    pView.frame = CGRectMake(0, Screen_Height - Screen_Width, Screen_Width, Screen_Width);
     [self.view addSubview:pView];
     self.pricesView = pView;
-    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(pinchAction:)];
-    [self.pricesView addGestureRecognizer:pinch];
 }
 
 @end
