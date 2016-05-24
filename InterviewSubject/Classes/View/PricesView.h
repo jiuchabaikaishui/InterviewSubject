@@ -10,6 +10,10 @@
 #import "PriceData.h"
 
 @interface PricesView : UIView
+/**
+ *  显示的数据数
+ */
+@property (assign, nonatomic) int showCount;
 
 /**
  *  股票日价列表

@@ -20,7 +20,7 @@
 #define Origin_Point            CGPointMake(Margin_L, Self_Height - Margin_B)
 #define Basic_Color             [UIColor colorWithRed:0.5 green:0.5 blue:0.5 alpha:1.0]
 #define Axes_Line_Whith         1
-#define Show_Count              20
+//#define Show_Count              20
 #define Point_R                 2
 #define Increase_Color          [UIColor redColor]
 #define Drop_Color              [UIColor greenColor]
@@ -57,14 +57,16 @@
 #pragma amrk - 属性方法
 - (void)setPriceData:(PriceData *)priceData
 {
-    _priceData = priceData;
-    if (priceData.dayPrices.count <= Show_Count) {
-        self.currentShowData = priceData.dayPrices;
-    }
-    else
-    {
-        self.currentShowData = [NSArray arrayWithArray:[priceData.dayPrices subarrayWithRange:NSMakeRange(priceData.dayPrices.count - Show_Count, Show_Count)]];
-        self.frontCurrentData = [NSMutableArray arrayWithArray:[priceData.dayPrices subarrayWithRange:NSMakeRange(0, priceData.dayPrices.count - Show_Count)]];
+    if (priceData) {
+        _priceData = priceData;
+        if (priceData.dayPrices.count <= self.showCount) {
+            self.currentShowData = priceData.dayPrices;
+        }
+        else
+        {
+            self.currentShowData = [NSArray arrayWithArray:[priceData.dayPrices subarrayWithRange:NSMakeRange(priceData.dayPrices.count - self.showCount, self.showCount)]];
+            self.frontCurrentData = [NSMutableArray arrayWithArray:[priceData.dayPrices subarrayWithRange:NSMakeRange(0, priceData.dayPrices.count - self.showCount)]];
+        }
     }
 }
 - (void)setCurrentShowData:(NSArray *)currentShowData
@@ -102,6 +104,57 @@
     
     return _backCurrentData;
 }
+- (void)setShowCount:(int)showCount
+{
+    if (showCount > 0 && showCount != _showCount) {
+        _showCount = showCount;
+        
+        if (self.currentShowData) {
+            if (showCount < self.currentShowData.count) {
+                NSInteger differenceCount = self.currentShowData.count - showCount;
+                NSArray *changeArr = [self.currentShowData subarrayWithRange:NSMakeRange(self.currentShowData.count - differenceCount, differenceCount)];
+                NSMutableArray *mChangeArr = [NSMutableArray arrayWithArray:changeArr];
+                [mChangeArr addObjectsFromArray:self.backCurrentData];
+                self.backCurrentData = mChangeArr;
+                NSMutableArray *mArr = [NSMutableArray arrayWithArray:self.currentShowData];
+                [mArr removeObjectsInArray:changeArr];
+                self.currentShowData = [NSArray arrayWithArray:mArr];
+            }
+            else if (showCount > self.currentShowData.count)
+            {
+                NSInteger differenceCount = showCount - self.currentShowData.count;
+                if (self.backCurrentData.count >= differenceCount) {
+                    NSMutableArray *mArr = [NSMutableArray arrayWithArray:self.currentShowData];
+                    NSArray *changeArr = [self.backCurrentData subarrayWithRange:NSMakeRange(0, differenceCount)];
+                    [mArr addObjectsFromArray:changeArr];
+                    self.currentShowData = [NSArray arrayWithArray:mArr];
+                    [self.backCurrentData removeObjectsInArray:changeArr];
+                }
+                else
+                {
+                    NSInteger backDifferenceCount = self.backCurrentData.count;
+                    if (backDifferenceCount > 0) {
+                        NSMutableArray *mArr = [NSMutableArray arrayWithArray:self.currentShowData];
+                        [mArr addObjectsFromArray:self.backCurrentData];
+                        self.currentShowData = [NSArray arrayWithArray:mArr];
+                        [self.backCurrentData removeAllObjects];
+                    }
+                    
+                    NSInteger frontDifferenceCount = differenceCount - backDifferenceCount;
+                    frontDifferenceCount = frontDifferenceCount <= self.frontCurrentData.count ? frontDifferenceCount : self.frontCurrentData.count;
+                    if (frontDifferenceCount > 0) {
+                        NSArray *changeArr = [self.frontCurrentData subarrayWithRange:NSMakeRange(self.frontCurrentData.count - frontDifferenceCount, frontDifferenceCount)];
+                        NSMutableArray *mArr = [NSMutableArray arrayWithArray:changeArr];
+                        [mArr addObjectsFromArray:self.currentShowData];
+                        self.currentShowData = [NSArray arrayWithArray:mArr];
+                        [self.frontCurrentData removeObjectsInArray:changeArr];
+                    }
+                }
+            }
+            else{}
+        }
+    }
+}
 
 #pragma mark - 系统方法
 - (void)drawRect:(CGRect)rect {
@@ -118,8 +171,11 @@
 - (instancetype)initWithFrame:(CGRect)frame
 {
     if (self = [super initWithFrame:frame]) {
+        self.showCount = 20;
         UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(panAction:)];
         [self addGestureRecognizer:pan];
+        UILongPressGestureRecognizer *longGesture = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(longAction:)];
+        [self addGestureRecognizer:longGesture];
     }
     
     return self;
@@ -128,35 +184,39 @@
 #pragma mark - 触摸手势方法
 - (void)panAction:(UIPanGestureRecognizer *)sender
 {
-    CGFloat margin = Self_Height/(float)Show_Count;
+    CGFloat margin = Self_Height/(float)self.showCount;
     CGPoint point = [sender translationInView:self];
     if (sender.state == UIGestureRecognizerStateBegan) {//开始拖动
         if (point.x > 0) {
-            [self changeArrData:YES];
+            [self dragChangeArrData:YES];
         }
         else
         {
-            [self changeArrData:NO];
+            [self dragChangeArrData:NO];
         }
     }
     else if (sender.state == UIGestureRecognizerStateChanged) {//正在拖动
         if (point.x > margin) {
-            [self changeArrData:YES];
+            [self dragChangeArrData:YES];
             [sender setTranslation:CGPointZero inView:self];
         }
         else if (point.x < -margin)
         {
-            [self changeArrData:NO];
+            [self dragChangeArrData:NO];
             [sender setTranslation:CGPointZero inView:self];
         }
     }
 }
+- (void)longAction:(UILongPressGestureRecognizer *)sender
+{
+    
+}
 /**
- *  改变数组中的数据
+ *  拖曳改变数组中的数据
  *
  *  @param isRingt 是否往右拖曳
  */
-- (void)changeArrData:(BOOL)isRingt
+- (void)dragChangeArrData:(BOOL)isRingt
 {
     if (isRingt) {//往右边拖
         if (self.frontCurrentData && self.frontCurrentData.count > 0) {//如果前边有数据
@@ -201,12 +261,12 @@
     CGSize specialSize = [specialStr boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:attributes context:nil].size;
     [specialStr drawWithRect:CGRectMake(endPoint.x - specialSize.width/2, endPoint.y - specialSize.height/2, specialSize.width, specialSize.height) options:NSStringDrawingUsesLineFragmentOrigin attributes:attributes context:nil];
     
-    CGFloat spacing = X_Lenth/(float)Show_Count;
+    CGFloat spacing = X_Lenth/(float)self.showCount;
     CGFloat cursorH = 5.0;
     CGFloat X;
     CGFloat beginY;
     CGFloat endY;
-    for (int index = 0; index < Show_Count - 1; index++) {
+    for (int index = 0; index < self.showCount - 1; index++) {
         X = Origin_Point.x + (index + 1)*spacing;
         beginY = Origin_Point.y - cursorH;
         endY = Origin_Point.y;
@@ -291,7 +351,7 @@
     //绘制线段
     for (int index = 0; index < self.currentShowData.count; index++) {
         DayPriceModel *dayPrice = self.currentShowData[index];
-        CGPoint centPoint = CGPointMake(Margin_L + X_Lenth/(float)Show_Count*index, lowY - ([dayPrice.price floatValue] - [self.minDayPrice.price floatValue])*YAxesRegin/priceRegin);
+        CGPoint centPoint = CGPointMake(Margin_L + X_Lenth/(float)self.showCount*index, lowY - ([dayPrice.price floatValue] - [self.minDayPrice.price floatValue])*YAxesRegin/priceRegin);
         if (dayPrice == self.maxDayPrice) {
             heightPoint = centPoint;
         }
@@ -362,7 +422,8 @@
     CGContextMoveToPoint(context, heightPoint.x, heightPoint.y);
     CGContextAddLineToPoint(context, Margin_L, heightPoint.y);
     CGContextStrokePath(context);
-    [self.maxDayPrice.price drawAtPoint:CGPointMake(Margin_L, heightPoint.y) withAttributes:attributes];
+    CGSize maxPriceSize = [self.maxDayPrice.price boundingRectWithSize:CGSizeMake(CGFLOAT_MAX, CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:attributes context:nil].size;
+    [self.maxDayPrice.price drawWithRect:CGRectMake(Margin_L, heightPoint.y - maxPriceSize.height, maxPriceSize.width, maxPriceSize.height) options:NSStringDrawingUsesLineFragmentOrigin attributes:attributes context:nil];
     
     //回复与保存图形上下文
     CGContextRestoreGState(context);

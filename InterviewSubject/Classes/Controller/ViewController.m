@@ -51,6 +51,21 @@
     [self settingUi];
 }
 
+#pragma mark - 触摸点击方法
+- (void)pinchAction:(UIPinchGestureRecognizer *)sender
+{
+    if (sender.scale > 1.0 && self.pricesView.showCount != 10) {
+        self.pricesView.showCount = 10;
+    }
+    if (sender.scale < 1.0 && self.pricesView.showCount != 20) {
+        self.pricesView.showCount = 20;
+    }
+    
+    if (sender.state == UIGestureRecognizerStateEnded) {
+        sender.scale = 1.0;
+    }
+}
+
 #pragma mark - 自定义方法
 - (void)settingUi
 {
@@ -62,6 +77,8 @@
     pView.priceData = self.priceData;
     [self.view addSubview:pView];
     self.pricesView = pView;
+    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(pinchAction:)];
+    [self.pricesView addGestureRecognizer:pinch];
 }
 
 @end
